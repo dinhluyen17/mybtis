@@ -1,4 +1,5 @@
-create table employees
+create database if not exists batisdemo;
+create table if not exists employees
 (
     id integer not null,
     first_name varchar(255) not null,
