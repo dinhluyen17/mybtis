@@ -8,7 +8,7 @@ import java.io.IOException;
 import java.io.Reader;
 
 public class MyBatisUtil {
-    private static SqlSessionFactory factory;
+    private static final SqlSessionFactory factory;
 
     static
     {
