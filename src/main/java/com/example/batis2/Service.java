@@ -24,7 +24,7 @@ public class Service {
         jsonRequest.forEach(System.out::println);
         for (String request : jsonRequest) {
             String encodedRequestJsonCols = encodeStringRequest(request);
-            System.out.println("request encoded " + encodedRequestJsonCols);
+//            System.out.println("request encoded " + encodedRequestJsonCols);
             String result = restTemplate.postForObject(requestPythonUrl, encodedRequestJsonCols, String.class);
             analysizeResult(result, jsonList.get(0));
         }
@@ -75,17 +75,13 @@ public class Service {
     }
 
     public List<String> getJsonRequest(List<List<String>> list) {
-        System.out.println("what is json string :" + list);
         String prefix = "{\"cols\":[";
         String endfix = "]}";
         List<String> requestList = new ArrayList<>();
         for (List<String> strings : list) {
             StringBuilder url = new StringBuilder("[");
-            System.out.println("string ban dau dau: " + strings);
             for (int j = 0; j < strings.size(); j++) {
-                System.out.println("log string get J: " + j + strings.get(j));
                 if(strings.get(j).startsWith("{id")) {
-                    System.out.println("da chay vao day tai j = " + j);
                     for(int k = 0; k < strings.get(j).length() - 1; k++) {
                         url.append(strings.get(j).charAt(k));
                         if(strings.get(j).charAt(k) == '{'
@@ -140,7 +136,7 @@ public class Service {
         for(String x : finalRsWithNoIndex) {
 //            System.out.println("check x" + x);
             String gateName = x.replaceAll("\\s.*", "");
-            System.out.println(gateName);
+//            System.out.println(gateName);
             finalRsNoIndex.add(gateName);
         }
         int idx = 0; //count index of gate in response list
@@ -178,7 +174,7 @@ public class Service {
             finalRs.append(str);
             finalRs.append("\n");
         }
-        System.out.println(finalRs);
+//        System.out.println(finalRs);
         return finalRs;
     }
 }
