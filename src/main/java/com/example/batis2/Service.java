@@ -18,7 +18,6 @@ public class Service {
         StringBuilder stringBuilder = new StringBuilder();
         String prefix = "OPENQASM 2.0;\n" +
                 "include \"qelib1.inc\";\n";
-        System.out.println(prefix);
         List<List<String>> jsonList = getJsonList(jsonString);
         List<String> jsonRequest = getJsonRequest(jsonList);
         System.out.println("------");
@@ -44,14 +43,37 @@ public class Service {
                 List<String> col = List.of(str.split(","));
                 demo.add(col);
             } else {
-                List<String> colWithArgGates = List.of(str.replaceAll("\\{", "[").replaceAll("}", "]").split(",(?=\\[^,]+?:)"));
-                System.out.println("test value " + colWithArgGates);
-                System.out.println("test value size" + colWithArgGates.size());
+                List<String> colWithArgGates = splitJsonColumnWithParameterizedGate(str);
                 demo.add(colWithArgGates);
             }
         }
         return demo;
     }
+
+    //split json string with special gate to array list
+    public static List<String> splitJsonColumnWithParameterizedGate(String input) {
+        List<String> column = new ArrayList<>();
+        int startPosition = 0;
+        boolean isInQuotes = false;
+        for (int currentPosition = 0; currentPosition < input.length(); currentPosition++) {
+            if (input.charAt(currentPosition) == '{' || input.charAt(currentPosition) == '}') {
+                isInQuotes = !isInQuotes;
+            }
+            else if (input.charAt(currentPosition) == ',' && !isInQuotes) {
+                column.add(input.substring(startPosition, currentPosition));
+                startPosition = currentPosition + 1;
+            }
+        }
+
+        String lastCol = input.substring(startPosition);
+        if (lastCol.equals(",")) {
+            column.add("");
+        } else {
+            column.add(lastCol);
+        }
+        return column;
+    }
+
     public List<String> getJsonRequest(List<List<String>> list) {
         System.out.println("what is json string :" + list);
         String prefix = "{\"cols\":[";
