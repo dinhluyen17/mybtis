@@ -15,3 +15,7 @@ spring:
       ddl-auto: none
       generate-ddl: true
       show-sql: true
+
+python-backend-quantum:
+  json-to-qasm: 'http://0.0.0.0:8000/json-to-qasm2'
+  qasm-to-json: 'http://0.0.0.0:8000/qasm-to-json2'

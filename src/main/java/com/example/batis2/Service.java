@@ -3,7 +3,6 @@ package com.example.batis2;
 import com.example.batis2.Exception.ExternalApiException;
 import org.springframework.web.client.RestTemplate;
 
-import javax.print.DocFlavor;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -18,52 +17,110 @@ public class Service {
         this.restTemplate = restTemplate;
     }
 
-    public StringBuilder getQasmCode(String jsonString) {
-        String prefix = "OPENQASM 2.0;\n" +
-                "include \"qelib1.inc\";\n\n\n";
-        countMeasureGate = 0; //set default measuregate appear time to 0;
-
-        StringBuilder concatResult = new StringBuilder(prefix); //variable for final rs
-        List<List<String>> jsonList = getJsonList(jsonString);
-        concatResult.append(getQregAndCreg(jsonList));
-        List<String> jsonRequest = getJsonRequest(jsonList);
-
-        for (int i = 0; i < jsonRequest.size(); i++) {
-            String encodedRequestJsonCols = encodeStringRequest(jsonRequest.get(i));
-            String result = restTemplate.postForObject(requestPythonUrl + "json-to-qasm2", encodedRequestJsonCols, String.class);
-            StringBuilder rs = analysizeResult(result, jsonList.get(i));
-            concatResult.append(rs);
-            concatResult.append("//\n");
-        }
-        return concatResult;
-    }
-
-    public List<List<String>> getJsonList(String json) {
-        String json3 = json.replace("\"", "");
-        String json4 = json3.substring(7, json3.length() - 2);
-
-        List<String> list = List.of(json4.split("],|]"));
-        List<String> list2 = list.stream().map(item -> item.replace("[", "")).collect(Collectors.toList());
-        List<List<String>> demo = new ArrayList<>();
-        for(String str : list2) {
-            if(!str.contains("arg")) {
-                List<String> col = List.of(str.split(","));
-                demo.add(col);
-            } else {
-                List<String> colWithArgGates = splitJsonColumnWithParameterizedGate(str);
-                demo.add(colWithArgGates);
+    //v2: starting --------------------------------------------------------------------------------------------------------------
+    public boolean checkSupportedGate(List<List<String>> json) {
+        List<String> supportedGates = Arrays.asList("\"Z\"", "\"Swap\"", "\"Y\"", "\"X\"", "\"H\"", "\"Z^½\"", "\"X^½\"", "\"Y^½\"", "\"Z^-½\"", "\"X^-½\"", "\"Y^-½\"", "\"Z^¼\"", "\"X^¼\"", "\"Y^¼\"","\"Z^-¼\"", "\"X^-¼\"", "\"Y^-¼\"", "\"Measure\"", "1", "\"•\"", "\"…\"");
+        List<String> supptedGatesWithParameter = Arrays.asList("{\"id\":\"Z^ft\"", "{\"id\":\"Rzft\"", "{\"id\":\"Y^ft\"", "{\"id\":\"Ryft\"", "{\"id\":\"X^ft\"", "{\"id\":\"Rxft\"");
+        for(List<String> col : json) {
+            for(String gate : col) {
+                System.out.println("gate" + gate);
+                if(!supportedGates.contains(gate.trim())) {
+                    if(!gate.startsWith("{")) {
+                        return false;
+                    }
+                    gate = gate.trim().split(",")[0];
+                    boolean flag = false;
+                    for(String paramGate : supptedGatesWithParameter) {
+                        if(paramGate.indexOf(gate.trim()) != -1) {
+                            flag = true;
+                        }
+                    }
+                    if(!flag) {
+                        return false;
+                    }
+                }
             }
         }
-        return demo;
+        return true;
+    }
+    public StringBuilder getQasmCode(String json) {
+        StringBuilder returnCode = new StringBuilder();
+        String listString = json.substring(9, json.length() - 2);
+        List<String> listString2 = splitJsonColsToList(listString);
+        List<List<String>> finalList = new ArrayList<>();
+        for(String colString : listString2) {
+            String beforeSplitString = colString.replaceAll("\\[", "").replaceAll("]", "");
+            List<String> strings = splitJsonColumnWithParameterizedGate(beforeSplitString);
+            finalList.add(strings);
+        }
+
+        boolean b = checkSupportedGate(finalList);
+        System.out.println(b);
+
+        String encodedRequest = encodeStringRequest(json);
+        String result = restTemplate.postForObject(requestPythonUrl + "json-to-qasm2", encodedRequest, String.class);
+        List<String> qasmCode = Arrays.asList(result.split("\n\n"));
+        StringBuilder qasmOnly = new StringBuilder();
+        for(int i = 2; i< qasmCode.size(); i++) {
+            qasmOnly.append(qasmCode.get(i).replaceAll("\n", ""));
+        }
+        List<String> qasmAsList = Arrays.asList(String.valueOf(qasmOnly).split(";"));
+        int mark = 0;
+        List<List<String>> rs = new ArrayList<>();
+        for(int i = 0; i < finalList.size(); i++) {
+            int actualColSize = finalList.get(i).stream()
+                    .filter(gate -> !gate.equals("1"))
+                    .collect(Collectors.toList())
+                    .size();
+
+            List<String> qasmCol = new ArrayList<>();
+            if(finalList.get(i).contains("\"•\"") || finalList.get(i).contains("\"Swap\"")) {
+                for(int j = mark; j < qasmAsList.size(); j++) {
+                    qasmCol.add(qasmAsList.get(j));
+                    mark++;
+                    if(qasmCol.size() == actualColSize - 1) {
+                        break;
+                    }
+                }
+            }
+            else {
+                for(int j = mark; j < qasmAsList.size(); j++) {
+                    qasmCol.add(qasmAsList.get(j));
+                    mark++;
+                    if(qasmCol.size() == actualColSize) {
+                        break;
+                    }
+                }
+            }
+            rs.add(qasmCol);
+        }
+
+        StringBuilder tata = new StringBuilder();
+        for(int i = 0; i < rs.size(); i++) {
+            StringBuilder col = new StringBuilder();
+            for (int j = 0; j < rs.get(i).size(); j++) {
+                col.append(rs.get(i).get(j))
+                        .append(";")
+                        .append("\n");
+            }
+            StringBuilder stringBuilder = analysizeResult(String.valueOf(col), finalList.get(i));
+            tata.append(stringBuilder);
+            tata.append("//\n");
+        }
+        returnCode.append(qasmCode.get(0))
+                .append("\n\n")
+                .append(qasmCode.get(1))
+                .append("\n\n")
+                .append(tata);
+        return returnCode;
     }
 
-    //split json string with special gate to array list
-    public List<String> splitJsonColumnWithParameterizedGate(String input) {
+    public List<String> splitJsonColsToList(String input) {
         List<String> column = new ArrayList<>();
         int startPosition = 0;
         boolean isInQuotes = false;
         for (int currentPosition = 0; currentPosition < input.length(); currentPosition++) {
-            if (input.charAt(currentPosition) == '{' || input.charAt(currentPosition) == '}') {
+            if (input.charAt(currentPosition) == '[' || input.charAt(currentPosition) == ']') {
                 isInQuotes = !isInQuotes;
             }
             else if (input.charAt(currentPosition) == ',' && !isInQuotes) {
@@ -81,67 +138,13 @@ public class Service {
         return column;
     }
 
-    public List<String> getJsonRequest(List<List<String>> list) {
-        String prefix = "{\"cols\":[";
-        String endfix = "]}";
-        List<String> requestList = new ArrayList<>();
-        for (List<String> strings : list) {
-            StringBuilder url = new StringBuilder("[");
-            for (int j = 0; j < strings.size(); j++) {
-                if(strings.get(j).startsWith("{id")) {
-                    for(int k = 0; k < strings.get(j).length() - 1; k++) {
-                        url.append(strings.get(j).charAt(k));
-                        if(strings.get(j).charAt(k) == '{'
-                                || strings.get(j).charAt(k + 1) == ':'
-                                || strings.get(j).charAt(k) == ':'
-                                || strings.get(j).charAt(k + 1) == 'a'
-                                || strings.get(j).charAt(k) == 'g'
-                                || strings.get(j).charAt(k + 1) == ','
-                                || strings.get(j).charAt(k + 1) == '}') {
-                            url.append("\"");
-                        }
-                    }
-                    url.append("}");
-                }
-                else if(!strings.get(j).equals("1")) {
-                    url.append("\"");
-                    url.append(strings.get(j));
-                    url.append("\"");
-                }
-                else {
-                    url.append(strings.get(j));
-                }
-
-                if(j < strings.size() - 1) {
-                    url.append(", ");
-                } else {
-                    url.append("]");
-                }
-            }
-            requestList.add(prefix + url + endfix);
-        }
-        return requestList;
-    }
-
-    public String encodeStringRequest(String stringRequest) {
-       return Base64.getEncoder().encodeToString(stringRequest.getBytes());
-    }
-
     public StringBuilder analysizeResult(String rsColumn, List<String> jsonList) {
         StringBuilder finalRs = new StringBuilder(); //save the return value
-
-        List<String> rsList = List.of(rsColumn.split("\\n\\n"));
-        List<String> finalRsWithNoIndex = List.of(rsList.get(2).replaceAll("\\n", "").split(";"));
+        List<String> finalRsWithNoIndex = List.of(rsColumn.replaceAll("\\n", "").split(";"));
         List<String> finalRsNoIndex = new ArrayList<>();
         //no need to handle result if rs column contain control gate (python backend has done it)
-        if(jsonList.contains("•")) {
-            for(int i = 2; i < rsList.size(); i++) {
-                finalRs.append(rsList.get(i).trim());
-                if(i < rsList.size() - 1) {
-                    finalRs.append("\n");
-                }
-            }
-            return finalRs;
+        if(jsonList.contains("\"•\"")) {
+            return new StringBuilder(rsColumn);
         }
         for(String x : finalRsWithNoIndex) {
             String gateName = x.replaceAll("\\s.*", "");
@@ -150,9 +153,9 @@ public class Service {
         int idx = 0; //count index of gate in response list
         int swapFlag = -1; //flag for the first time swap gate appear in the json column
         int swapIdxCount = 0;
-        if(!jsonList.contains("Swap")) {
+        if(!jsonList.contains("\"Swap\"")) {
             for(int i = 0; i < jsonList.size(); i++) {
-                if(jsonList.get(i).equals("Measure")) {
+                if(jsonList.get(i).equals("\"Measure\"")) {
                     finalRsNoIndex.set(idx, finalRsNoIndex.get(idx) + " q[" + i + "]" + " -> m" + countMeasureGate + "[0];");
                     idx++;
                     countMeasureGate++;
@@ -164,7 +167,7 @@ public class Service {
             }
         } else {
             for(int i = 0; i < jsonList.size(); i++) {
-                if (jsonList.get(i).equals("Swap")) {
+                if (jsonList.get(i).equals("\"Swap\"")) {
                     if(swapFlag == -1) {
                         swapFlag = idx;
                     }
@@ -190,27 +193,41 @@ public class Service {
         return finalRs;
     }
 
-    //part 2 of final result (get number of qubits and number of measurement gates)
-    public StringBuilder getQregAndCreg(List<List<String>> jsonList) {
-        StringBuilder finalRsPart2 = new StringBuilder();
-        StringBuilder measureGate = new StringBuilder();
-        int maxQubits = 2; //config minium number of qubits
-        int countOfMeasureGate = 0;
-        for(int i = 0; i < jsonList.size(); i++) {
-            if(maxQubits < jsonList.get(i).size()) {
-                maxQubits = jsonList.get(i).size();
+
+    //ending
+
+
+
+    //split json string with special gate to array list
+    public List<String> splitJsonColumnWithParameterizedGate(String input) {
+        List<String> column = new ArrayList<>();
+        int startPosition = 0;
+        boolean isInQuotes = false;
+        for (int currentPosition = 0; currentPosition < input.length(); currentPosition++) {
+            if (input.charAt(currentPosition) == '{' || input.charAt(currentPosition) == '}') {
+                isInQuotes = !isInQuotes;
             }
-            for(int j = 0; j < jsonList.get(i).size(); j++) {
-                if(jsonList.get(i).get(j).equals("Measure")) {
-                    measureGate.append(String.format("creg m%s[1];  // Measurement: row=%s,col=%s\n", countOfMeasureGate, j, i));
-                    countOfMeasureGate++;
-                }
+            else if (input.charAt(currentPosition) == ',' && !isInQuotes) {
+                column.add(input.substring(startPosition, currentPosition));
+                startPosition = currentPosition + 1;
             }
         }
-        measureGate.append("\n\n");
-        finalRsPart2.append(String.format("qreg q[%s];\n", maxQubits));
-        return finalRsPart2.append(measureGate);
+
+        String lastCol = input.substring(startPosition);
+        if (lastCol.equals(",")) {
+            column.add("");
+        } else {
+            column.add(lastCol);
+        }
+        return column;
     }
+
+    public String encodeStringRequest(String stringRequest) {
+       return Base64.getEncoder().encodeToString(stringRequest.getBytes());
+    }
+
+
+    //--------------
 
     public StringBuilder getJsonCode(String qasm) {
         StringBuilder jsonFinal = new StringBuilder("{\"cols\":[");
@@ -445,10 +462,16 @@ public class Service {
                 if(gates.size() <= 1) { //if request contains only one gate or less then no need to check for duplicate position of gates
                     return true;
                 }
-                List<String> gateIdx = gates.stream()
-                        .filter(gate -> gate.length() > 0)
-                        .map(gate -> gate.contains("measure") ? gate.substring(8, 12) : gate.substring(gate.length() - 4))
-                        .collect(Collectors.toList());
+                List<String> gateIdx;
+                try {
+                    gateIdx = gates.stream()
+                            .filter(gate -> gate.length() > 0)
+                            .map(gate -> gate.contains("measure") ? gate.substring(8, 12) : gate.substring(gate.length() - 4))
+                            .collect(Collectors.toList());
+                } catch (StringIndexOutOfBoundsException ex){
+                    throw new ExternalApiException("Syntax error");
+                }
+
                 checkDupIdx.add(new ArrayList<>(Arrays.asList(gateIdx.get(0))));
                 code.add(new ArrayList<>(Arrays.asList(gates.get(0))));
                 for(int i = 1; i < gates.size(); i++) {
