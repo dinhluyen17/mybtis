@@ -21,22 +21,31 @@ public class Service {
     public boolean checkSupportedGate(List<List<String>> json) {
         List<String> supportedGates = Arrays.asList("\"Z\"", "\"Swap\"", "\"Y\"", "\"X\"", "\"H\"", "\"Z^½\"", "\"X^½\"", "\"Y^½\"", "\"Z^-½\"", "\"X^-½\"", "\"Y^-½\"", "\"Z^¼\"", "\"X^¼\"", "\"Y^¼\"","\"Z^-¼\"", "\"X^-¼\"", "\"Y^-¼\"", "\"Measure\"", "1", "\"•\"", "\"…\"");
         List<String> supptedGatesWithParameter = Arrays.asList("{\"id\":\"Z^ft\"", "{\"id\":\"Rzft\"", "{\"id\":\"Y^ft\"", "{\"id\":\"Ryft\"", "{\"id\":\"X^ft\"", "{\"id\":\"Rxft\"");
+        List<String> controlGateColumes = Arrays.asList("\"•\"","\"Z\"","\"Y\"","\"X\"","\"H\"");
         for(List<String> col : json) {
-            for(String gate : col) {
-                System.out.println("gate" + gate);
-                if(!supportedGates.contains(gate.trim())) {
-                    if(!gate.startsWith("{")) {
-                        return false;
-                    }
-                    gate = gate.trim().split(",")[0];
-                    boolean flag = false;
-                    for(String paramGate : supptedGatesWithParameter) {
-                        if(paramGate.indexOf(gate.trim()) != -1) {
-                            flag = true;
+            if(!col.contains("\"•\"")) {
+                for(String gate : col) {
+                    if(!supportedGates.contains(gate.trim())) {
+                        if(!gate.startsWith("{")) {
+                            return false;
+                        }
+                        gate = gate.trim().split(",")[0];
+                        boolean flag = false;
+                        for(String paramGate : supptedGatesWithParameter) {
+                            if(paramGate.indexOf(gate.trim()) != -1) {
+                                flag = true;
+                            }
+                        }
+                        if(!flag) {
+                            return false;
                         }
                     }
-                    if(!flag) {
-                        return false;
+                }
+            }
+            else {
+                for(String gate : col) {
+                    if(!controlGateColumes.contains(gate) && !gate.equals("1")) {
+                        throw new ExternalApiException("control fdsakfjslfjds error");
                     }
                 }
             }
@@ -55,7 +64,6 @@ public class Service {
         }
 
         boolean b = checkSupportedGate(finalList);
-        System.out.println(b);
 
         String encodedRequest = encodeStringRequest(json);
         String result = restTemplate.postForObject(requestPythonUrl + "json-to-qasm2", encodedRequest, String.class);
@@ -144,7 +152,28 @@ public class Service {
         List<String> finalRsNoIndex = new ArrayList<>();
         //no need to handle result if rs column contain control gate (python backend has done it)
         if(jsonList.contains("\"•\"")) {
-            return new StringBuilder(rsColumn);
+            StringBuilder controlRs = new StringBuilder();
+            List<Integer> indexOfGates = new ArrayList<>(Arrays.asList(0)); //control gate always get first position
+            for(int i = 0; i < jsonList.size(); i++) {
+                if(!jsonList.get(i).equals("\"•\"") && !jsonList.get(i).equals("1")) {
+                    indexOfGates.add(i);
+                } else if (jsonList.get(i).equals("\"•\"")) {
+                    indexOfGates.set(0, i);
+                }
+            }
+            System.out.println("Gate index wiht control " + indexOfGates);
+            List<String> lineOfCodeSubtractIndex = new ArrayList<>();
+            for(String line : finalRsWithNoIndex) {
+                String gate = line.split("\\s")[0];
+                lineOfCodeSubtractIndex.add(gate);
+            }
+            System.out.println("Gate index wiht control " + lineOfCodeSubtractIndex);
+            for(int i = 0; i < lineOfCodeSubtractIndex.size(); i++) {
+                String val = String.format("%s q[%d],q[%d];\n", lineOfCodeSubtractIndex.get(i), indexOfGates.get(0), indexOfGates.get(i + 1));
+                controlRs.append(val);
+            }
+            System.out.println("fdfdfd" + controlRs);
+            return new StringBuilder(controlRs);
         }
         for(String x : finalRsWithNoIndex) {
             String gateName = x.replaceAll("\\s.*", "");
@@ -266,7 +295,6 @@ public class Service {
             jsonFinal.deleteCharAt(jsonFinal.length() -1);
         }
         jsonFinal.append("]}");
-        System.out.println("fianl json la gi: " + jsonFinal);
         return jsonFinal;
     }
 
@@ -377,8 +405,6 @@ public class Service {
         List<String> listOfGatesExcludeControl = List.of(jsonControl.replaceAll("\\[", "").replaceAll("]", "").split(","))
                 .stream().filter(gate -> !gate.equals("\"•\"") && !gate.equals("1")).collect(Collectors.toList());
 
-        //System.out.println("list gate " + listOfGatesExcludeControl);
-
         List<Integer> takenPosition = new ArrayList<>(); //1 first position is for control gate
         takenPosition.add(-1);
         boolean isControl = true; //swap can only appear 2 times
@@ -399,7 +425,6 @@ public class Service {
             }
         }
 
-        //System.out.println("taken position " + takenPosition);
 
         int jsonLen = Collections.max(takenPosition);
         int idx = 0;
@@ -425,7 +450,6 @@ public class Service {
         Pattern pattern = Pattern.compile("c[a-z]\\sq\\[\\d]");
         Matcher matcher = pattern.matcher(qasm);
         if(matcher.find()) {
-            System.out.println("check control column >>>>: " + qasm);
             List<String> colsWithControlGate = List.of(qasm.trim().split(";"));
             Optional<String> check = colsWithControlGate.stream().map(gate -> gate.trim()).filter(gate -> !gate.startsWith("c")).findFirst();
             if(check.isPresent()) {
