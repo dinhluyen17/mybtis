@@ -23,4 +23,20 @@
         from employees
         where id=#{id, jdbcType=INTEGER}
     </select>
+
+    <insert id="addEmployee" parameterType="com.example.batis2.entity.Employee">
+        insert into employees values (#{id}, #{firstName}, #{lastName}, #{emailAddress})
+    </insert>
+
+    <update id="updateEmployee" parameterType="com.example.batis2.entity.Employee">
+        update employees set
+                          first_name = #{firstName},
+                          last_name = #{lastName},
+                          email_address = #{emailAddress}
+        where id = #{id}
+    </update>
+
+    <delete id="deleteEmployee" parameterType="java.lang.Integer">
+        delete from employees where id = #{id}
+    </delete>
 </mapper>

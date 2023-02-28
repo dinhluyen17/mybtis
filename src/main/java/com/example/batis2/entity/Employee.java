@@ -2,7 +2,7 @@ package com.example.batis2.entity;
 
 import lombok.*;
 
-
+@Builder
 public class Employee {
     private Integer id;
     private String firstName;

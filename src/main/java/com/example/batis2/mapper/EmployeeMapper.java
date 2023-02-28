@@ -7,4 +7,10 @@ import java.util.List;
 public interface EmployeeMapper {
     List<Employee> findAll();
     Employee findById(Integer id);
+
+    int addEmployee(Employee employee);
+
+    int updateEmployee(Employee employee);
+
+    int deleteEmployee(Integer id);
 }
