@@ -5,7 +5,8 @@
 <configuration>
     <properties resource='jdbc.properties'/>
     <typeAliases>
-        <typeAlias type='com.example.batis2.Entity.Employee' alias='Employee'/>
+        <package name='com.example.batis2.entity'/>
+<!--        <typeAlias alias = "Employee" type = "com.example.batis2.entity.Employee"/>-->
     </typeAliases>
     <environments default='development'>
         <environment id='development'>
@@ -19,6 +20,7 @@
         </environment>
     </environments>
     <mappers>
-        <mapper resource='com.example.batis2.Mapper.EmpMapper'/>
+        <package name='com.example.batis2.mapper'/>
+<!--        <mapper resource = "com.example.batis2.mapper.EmployeeMapper"/>-->
     </mappers>
 </configuration>

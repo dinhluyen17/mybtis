@@ -1,4 +1,4 @@
-package com.example.batis2.Entity;
+package com.example.batis2.out;
 
 import org.apache.ibatis.io.Resources;
 import org.apache.ibatis.session.SqlSessionFactory;

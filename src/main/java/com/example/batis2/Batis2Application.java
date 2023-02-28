@@ -1,7 +1,6 @@
 package com.example.batis2;
 
-import com.example.batis2.Entity.Employee;
-import com.example.batis2.Mapper.EmployeeMyBatisRepository;
+import com.example.batis2.out.EmployeeMyBatisRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;

@@ -1,6 +1,6 @@
-package com.example.batis2.Mapper;
+package com.example.batis2.out;
 
-import com.example.batis2.Entity.Employee;
+import com.example.batis2.entity.Employee;
 import org.apache.ibatis.annotations.*;
 
 import java.util.List;

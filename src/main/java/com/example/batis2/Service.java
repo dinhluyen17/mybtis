@@ -268,6 +268,8 @@ public class Service {
         List<String> listQasm = splitQasmCodeByColumn(String.valueOf(qasmPart));
         List<String> listQasm2 = new ArrayList<>(listQasm);
         List<StringBuilder> listOfQasmCodeRequest = getListOfQasmCodeRequest(detachCode, listQasm, listQasm2);
+//        JsonObject jsonObject = new JsonObject();
+//        JsonArray jsonArray = new JsonArray();
         for(int i = 0; i < listOfQasmCodeRequest.size(); i++) {
             String encodeQasmRequest = encodeStringRequest(String.valueOf(listOfQasmCodeRequest.get(i)));
             String jsonCol = restTemplate.postForObject(requestPythonUrl + "qasm-to-json2", encodeQasmRequest, String.class);
