@@ -1,7 +1,8 @@
-package com.example.batis2;
+package com.example.batis2.controller;
 
+import com.example.batis2.service.Service;
 import com.example.batis2.entity.Employee;
-import com.example.batis2.mapper.EmpMapper;
+import com.example.batis2.mapper.EmployeeMapper;
 import com.example.batis2.out.EmployeeMyBatisRepository;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,16 +16,19 @@ import java.util.*;
 @RequestMapping(path = "/v1")
 public class EmpController {
     private final EmployeeMyBatisRepository employeeMyBatisRepository;
-    private final EmpMapper empMapper;
+//    private final EmpMapper empMapper;
+    private final EmployeeMapper employeeMapper;
     private  final Service service;
 
     @Value("${python-backend-quantum.json-to-qasm}")
     private String baeldungPresentation;
 
+
+
     @Autowired
-    public EmpController(EmployeeMyBatisRepository employeeMyBatisRepository, EmpMapper empMapper, Service service) {
+    public EmpController(EmployeeMyBatisRepository employeeMyBatisRepository, EmployeeMapper employeeMapper, Service service) {
         this.employeeMyBatisRepository = employeeMyBatisRepository;
-        this.empMapper = empMapper;
+        this.employeeMapper = employeeMapper;
         this.service = service;
     }
 
@@ -35,7 +39,8 @@ public class EmpController {
 
     @GetMapping(path = "")
     public List<Employee> getAll() {
-        return employeeMyBatisRepository.findAll();
+        System.out.println(">><<");
+        return employeeMapper.findAll();
     }
 
     @PostMapping(path = "/convertJsonToQasm")
@@ -59,6 +64,8 @@ public class EmpController {
         System.out.println(jsonString);
         return ResponseEntity.ok(jsonString);
     }
+
+
 
 
 

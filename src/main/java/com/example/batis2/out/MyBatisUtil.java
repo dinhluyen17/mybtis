@@ -3,10 +3,12 @@ package com.example.batis2.out;
 import org.apache.ibatis.io.Resources;
 import org.apache.ibatis.session.SqlSessionFactory;
 import org.apache.ibatis.session.SqlSessionFactoryBuilder;
+import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.io.Reader;
 
+@Component
 public class MyBatisUtil {
     private static final SqlSessionFactory factory;
 

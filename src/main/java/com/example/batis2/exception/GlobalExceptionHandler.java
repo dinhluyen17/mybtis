@@ -1,4 +1,4 @@
-package com.example.batis2.Exception;
+package com.example.batis2.exception;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

@@ -1,6 +1,6 @@
-package com.example.batis2;
+package com.example.batis2.service;
 
-import com.example.batis2.Exception.ExternalApiException;
+import com.example.batis2.exception.ExternalApiException;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.*;

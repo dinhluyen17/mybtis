@@ -1,4 +1,4 @@
-package com.example.batis2.Exception;
+package com.example.batis2.exception;
 
 public class ExternalApiException extends RuntimeException {
     public ExternalApiException() {
