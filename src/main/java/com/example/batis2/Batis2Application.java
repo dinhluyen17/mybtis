@@ -15,8 +15,8 @@ public class Batis2Application implements CommandLineRunner {
     }
     private Logger logger = LoggerFactory.getLogger(this.getClass());
 
-    @Autowired
-    private EmployeeMyBatisRepository employeeRepository;
+//    @Autowired
+//    private EmployeeMyBatisRepository employeeRepository;
 
     @Override
     public void run(String...args) throws Exception {

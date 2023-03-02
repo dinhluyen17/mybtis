@@ -1,4 +1,4 @@
-package com.example.batis2;
+package com.example.batis2.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
